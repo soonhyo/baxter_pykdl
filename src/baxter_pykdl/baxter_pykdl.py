@@ -37,6 +37,8 @@ import baxter_interface
 from baxter_kdl.kdl_parser import kdl_tree_from_urdf_model
 from urdf_parser_py.urdf import URDF
 
+from sympy import symbols, diff, Matrix, lambdify
+
 class baxter_kinematics(object):
     """
     Baxter Kinematics with PyKDL
@@ -173,3 +175,26 @@ class baxter_kinematics(object):
         js_inertia = self.inertia(joint_values)
         jacobian = self.jacobian(joint_values)
         return np.linalg.inv(jacobian * np.linalg.inv(js_inertia) * jacobian.T)
+
+    def coriolis_matrix(self, joint_values=None, joint_velocities=None):
+        js_inertia = self.inertia(joint_values)
+
+        q = symbols('q1:8')
+        q_dot = symbols('dq1:8')
+
+        C = self.compute_coriolis_matrix(Matrix(js_inertia), q, q_dot)
+        C_func = lambdify(q + q_dot, C)
+        C_numeric = C_func(*self.joints_to_kdl('positions',joint_values), *self.joints_to_kdl('velocities', joint_velocities).value())
+        return np.array(C_numeric).astype(np.float64)
+
+    def compute_coriolis_matrix(self, M, q, q_dot):
+        n = len(q)
+        C = Matrix.zeros(n, n)
+        for i in range(n):
+            for j in range(n):
+                c_ij = 0
+                for k in range(n):
+                    christoffel = 0.5 * (M[i, j].diff(q[k]) + M[i, k].diff(q[j]) - M[j, k].diff(q[i]))
+                    c_ij += christoffel * q_dot[k]
+                C[i, j] = c_ij
+        return C
