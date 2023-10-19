@@ -44,7 +44,10 @@ class baxter_kinematics(object):
     Baxter Kinematics with PyKDL
     """
     def __init__(self, limb):
-        self._baxter = URDF.from_parameter_server(key='robot_description')
+        urdf_str = rospy.get_param('robot_description')
+        urdf_str = urdf_str.replace('<?xml version="1.0" encoding="utf-8"?>', '')
+        # self._baxter = URDF.from_parameter_server(key='robot_description')
+        self._baxter = URDF.from_xml_string(urdf_str)
         self._kdl_tree = kdl_tree_from_urdf_model(self._baxter)
         self._base_link = self._baxter.get_root()
         self._tip_link = limb + '_gripper'
@@ -82,6 +85,12 @@ class baxter_kinematics(object):
     def print_kdl_chain(self):
         for idx in range(self._arm_chain.getNrOfSegments()):
             print('* ' + self._arm_chain.getSegment(idx).getName())
+
+    def get_kdl_chain(self):
+        result = []
+        for idx in range(self._arm_chain.getNrOfSegments()):
+            result.append(self._arm_chain.getSegment(idx).getName())
+        return result
 
     def joints_to_kdl(self, type, values=None):
         kdl_array = PyKDL.JntArray(self._num_jnts)
