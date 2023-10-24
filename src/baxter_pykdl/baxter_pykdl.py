@@ -174,7 +174,6 @@ class baxter_kinematics(object):
     def jacobian_pseudo_inverse(self,joint_values=None):
         return np.linalg.pinv(self.jacobian(joint_values))
 
-
     def inertia(self,joint_values=None):
         inertia = PyKDL.JntSpaceInertiaMatrix(self._num_jnts)
         self._dyn_kdl.JntToMass(self.joints_to_kdl('positions',joint_values), inertia)
@@ -183,7 +182,7 @@ class baxter_kinematics(object):
     def cart_inertia(self,joint_values=None):
         js_inertia = self.inertia(joint_values)
         jacobian = self.jacobian(joint_values)
-        return np.linalg.inv(jacobian * np.linalg.inv(js_inertia) * jacobian.T)
+        return np.linalg.inv(jacobian.dot(np.linalg.inv(js_inertia).dot(jacobian.T)))
 
     def coriolis_matrix(self, joint_values=None, joint_velocities=None):
         js_inertia = self.inertia(joint_values)
